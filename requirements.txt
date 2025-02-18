@@ -1,0 +1,6 @@
+Dask
+PaddleOCR
+pandas
+numpy
+opencv-python
+```
