@@ -17,7 +17,18 @@ def crop_upper_left(image_path):
     cropped_img = img.crop((0, 0, width // 2, height // 2))
     return np.array(cropped_img)
 
-
+def has_red_color(image_path, threshold=50, fraction=0.1):
+    """
+    Returns True if at least `fraction` of the pixels in the image (after comparing red channel
+    to green and blue channels) have a red value > threshold.
+    """
+    img = Image.open(image_path).convert("RGB")
+    np_img = np.array(img)
+    # Create a mask: red channel is greater than threshold and red >> green and blue.
+    red_mask = (np_img[:,:,0] > threshold) & (np_img[:,:,0] > np_img[:,:,1]) & (np_img[:,:,0] > np_img[:,:,2])
+    if np.mean(red_mask) > fraction:
+        return True
+    return False
 # def process_image_file(image_path, selected_prop, regex, prompt):
 #     """
 #     Crop the image to its upper left quadrant, run PaddleOCR to extract text,
@@ -98,6 +109,7 @@ def process_image_file(image_path, selected_prop, regex, prompt):
     from paddleocr import PaddleOCR
     ocr = PaddleOCR(use_angle_cls=True, lang='en', use_gpu=False, image_orientation=True)
     result = ocr.ocr(cropped_image, cls=True)
+    # print(f"OCR result for {os.path.basename(image_path)}: {result}")
     
     if not result:
         extracted_text = ""
@@ -130,8 +142,12 @@ def process_image_file(image_path, selected_prop, regex, prompt):
     status = "running"
     
     if not extracted_text:
-        extracted_text = "machine is off"
-        status = "off"
+        if has_red_color(image_path):
+            extracted_text = "machine is On"
+            status = "on"
+        else:
+            extracted_text = "machine is off"
+            status = "off"
     elif extracted_text == "0":
         extracted_text = "machine is On"
         status = "on"
